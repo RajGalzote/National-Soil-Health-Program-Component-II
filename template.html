@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>National Soil Health Program Component II: Monitoring of Soil Health</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --bg:#f4f2ee; --panel:#ffffff; --ink:#1f2421; --muted:#6b706c; --line:#e3e0d9;
+  --brand:#3d5a3a; --brand2:#7a5c3c; --accent:#c8862e; --hover:#f0ede6;
+  --radius:10px; --shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,select,input{font:inherit}
+header{background:linear-gradient(90deg,#2f4a2e,#4b3a28);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;font-weight:650;letter-spacing:.1px}
+header .sub{font-size:12.5px;opacity:.8}
+header .spacer{flex:1}
+.hbtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}
+.hbtn:hover{background:rgba(255,255,255,.22)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:12px 16px 4px}
+.kpi{background:var(--panel);border-radius:var(--radius);padding:10px 14px;box-shadow:var(--shadow);border-left:4px solid var(--brand)}
+.kpi .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:6px 16px 0;min-height:6px}
+.chip{background:#e7ecdf;color:#2f4a2e;border-radius:999px;padding:3px 6px 3px 10px;font-size:12px;display:inline-flex;align-items:center;gap:4px}
+.chip button{border:0;background:none;cursor:pointer;color:#2f4a2e;font-size:14px;line-height:1;padding:0 4px}
+.grid{display:grid;grid-template-columns:260px minmax(0,1fr) 420px;gap:12px;padding:10px 16px;height:calc(100vh - 150px);min-height:560px}
+.panel{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.filters{padding:14px;overflow:auto}
+.filters h2,.analytics h2,.tablewrap h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 10px;font-weight:650}
+.f{margin-bottom:11px}
+.f label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.f select,.f input[type=text],.f input[type=date]{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}
+.f select:focus,.f input:focus{outline:2px solid #9bb38f;border-color:transparent}
+.row2{display:grid;grid-template-columns:1fr;gap:6px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;cursor:pointer}
+.btn{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;margin-top:6px}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn.primary:hover{background:#2f4a2e}
+.mapwrap{position:relative}
+#map{position:absolute;inset:0}
+.mapbar{position:absolute;top:10px;left:56px;z-index:500;background:#fff;border-radius:8px;box-shadow:var(--shadow);padding:5px 8px;display:flex;align-items:center;gap:6px;font-size:12.5px}
+.mapbar select{border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.legend{position:absolute;bottom:22px;left:10px;z-index:500;background:rgba(255,255,255,.96);border-radius:8px;box-shadow:var(--shadow);padding:8px 10px;max-height:46%;overflow:auto;font-size:12px;min-width:170px}
+.legend .t{font-weight:650;margin-bottom:4px;display:flex;justify-content:space-between;gap:10px}
+.legend .t button{border:0;background:none;color:var(--brand);cursor:pointer;font-size:11.5px;padding:0}
+.lg{display:flex;align-items:center;gap:7px;padding:2px 3px;cursor:pointer;border-radius:4px;user-select:none}
+.lg:hover{background:var(--hover)}
+.lg.off{opacity:.35;text-decoration:line-through}
+.lg .sw{width:12px;height:12px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);flex:none}
+.lg .c{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums;padding-left:8px}
+.analytics{overflow:auto;padding:14px}
+.card{border:1px solid var(--line);border-radius:9px;padding:11px 12px;margin-bottom:12px}
+.card h3{font-size:13.5px;margin:0 0 2px;font-weight:650}
+.card .note{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.hb{display:grid;grid-template-columns:118px 1fr 44px;align-items:center;gap:6px;font-size:12px;padding:2px 0;cursor:default}
+.hb.click{cursor:pointer}
+.hb.click:hover .bar{filter:brightness(.9)}
+.hb.sel .lab{font-weight:700}
+.hb .lab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb .track{background:#f1efe9;border-radius:3px;height:13px;overflow:hidden}
+.hb .bar{height:100%;border-radius:3px;background:var(--brand)}
+.hb .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.cols{display:flex;align-items:flex-end;gap:2px;height:120px;border-bottom:1px solid #cfcac0;position:relative}
+.cols .col{flex:1;border-radius:2px 2px 0 0;min-height:1px;position:relative}
+.cols .col:hover{filter:brightness(.85)}
+.axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:3px}
+.stk{margin:7px 0}
+.stk .h{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+.stk .h span:last-child{color:var(--muted)}
+.stk .bars{display:flex;height:18px;border-radius:4px;overflow:hidden;background:#f1efe9}
+.stk .bars div{height:100%;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#fff;font-weight:600;overflow:hidden;white-space:nowrap}
+.minileg{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--muted);margin-top:6px}
+.minileg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+table.mt{width:100%;border-collapse:collapse;font-size:12px}
+table.mt th{text-align:right;color:var(--muted);font-weight:600;padding:3px 4px;border-bottom:1px solid var(--line)}
+table.mt th:first-child,table.mt td:first-child{text-align:left}
+table.mt td{text-align:right;padding:3px 4px;border-bottom:1px solid #f1efe9;font-variant-numeric:tabular-nums}
+table.mt td .cell{display:inline-block;min-width:44px;padding:1px 5px;border-radius:4px}
+.tablewrap{margin:0 16px 20px;padding:14px}
+.tbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.tbar .sp{flex:1}
+.tscroll{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:8px}
+table.dt{width:100%;border-collapse:collapse;font-size:12.5px}
+table.dt th{position:sticky;top:0;background:#f7f5f1;text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none}
+table.dt th.num,table.dt td.num{text-align:right}
+table.dt td{padding:6px 8px;border-bottom:1px solid #f1efe9;white-space:nowrap}
+table.dt tbody tr{cursor:pointer}
+table.dt tbody tr:hover{background:#f6f8f3}
+.pager{display:flex;gap:6px;align-items:center;font-size:12.5px}
+.pager button{padding:4px 10px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+.muted{color:var(--muted)}
+/* popup */
+.leaflet-popup-content{margin:12px 14px;min-width:290px;max-width:360px;font-size:12.5px}
+.pp h4{margin:0 0 6px;font-size:15px}
+.pp .tag{display:inline-block;background:#e7ecdf;color:#2f4a2e;border-radius:999px;padding:1px 8px;font-size:11px;margin-left:4px;vertical-align:2px}
+.pp table{border-collapse:collapse;width:100%}
+.pp td{padding:2px 0;vertical-align:top}
+.pp td:first-child{font-weight:600;width:42%;padding-right:8px}
+.pp .sec{font-weight:650;margin:8px 0 3px;font-size:12px;color:var(--brand2);text-transform:uppercase;letter-spacing:.4px}
+.pp table.lab td,.pp table.lab th{border-bottom:1px solid #eee;padding:2px 3px;text-align:right;font-weight:400;width:auto}
+.pp table.lab th{font-weight:600;color:var(--muted);font-size:11px}
+.pp table.lab td:first-child,.pp table.lab th:first-child{text-align:left}
+.pp details{border-top:1px solid #eee;padding-top:2px;margin-top:4px}
+.pp summary{cursor:pointer;list-style:revert}
+.pp summary.sec{display:list-item}
+.pp .hzl{font-size:11.5px;color:#333}
+.pp .hzi{padding:4px 0;border-bottom:1px dashed #e6e2d9}
+.pp .hzi:last-child{border-bottom:0}
+.pp .hzh{margin-bottom:1px}
+.pp .coords{color:var(--muted);font-size:11.5px;margin-top:6px}
+.pp a{color:var(--brand)}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:2000;padding:20px}
+.modal.on{display:flex}
+.modal .box{background:#fff;border-radius:12px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:20px 24px}
+.modal h2{margin-top:0;font-size:18px}
+.modal li{margin-bottom:5px}
+.modal table{border-collapse:collapse;font-size:13px}
+.modal td,.modal th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+@media (max-width:1250px){.grid{grid-template-columns:240px minmax(0,1fr)}.analytics{grid-column:1/-1;max-height:none}.grid{height:auto}.mapwrap{height:70vh;min-height:480px}.filters{max-height:70vh}}
+@media (max-width:760px){.grid{grid-template-columns:1fr}.filters{max-height:none}.mapbar{left:50px;right:10px;flex-wrap:wrap}.hb{grid-template-columns:96px 1fr 40px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1 id="title">National Soil Health Program Component II: Monitoring of Soil Health</h1>
+    <div class="sub">Soil Resources Information Database · 2023–2026</div>
+  </div>
+  <div class="spacer"></div>
+  <button class="hbtn" id="btnExport" title="Download the currently filtered points as CSV">⬇ Export CSV</button>
+  <button class="hbtn" id="btnAbout">ⓘ About the data</button>
+</header>
+
+<div class="kpis" id="kpis"></div>
+<div class="chips" id="chips"></div>
+
+<div class="grid">
+  <aside class="panel filters">
+    <h2>Filters</h2>
+    <div class="f"><label for="q">Search (ID, barangay, municipality, series…)</label><input type="text" id="q" placeholder="e.g. Ubay, San Manuel"></div>
+    <div class="f"><label for="f_reg">Region</label><select id="f_reg" data-k="reg"></select></div>
+    <div class="f"><label for="f_prov">Province</label><select id="f_prov" data-k="prov"></select></div>
+    <div class="f"><label for="f_mun">Municipality</label><select id="f_mun" data-k="mun"></select></div>
+    <div class="f"><label for="f_lug">Land use (grouped)</label><select id="f_lug" data-k="lug"></select></div>
+    <div class="f"><label for="f_yr">Year</label><select id="f_yr" data-k="yr"></select></div>
+    <div class="f"><label for="f_st">Sampling type</label><select id="f_st" data-k="st"></select></div>
+    <div class="f"><label>Date described</label><div class="row2"><input type="date" id="d_from" title="From" aria-label="From date"><input type="date" id="d_to" title="To" aria-label="To date"></div></div>
+    <label class="check"><input type="checkbox" id="c_lab"> Only points with lab results</label>
+    <label class="check"><input type="checkbox" id="c_view"> Analyze only what's visible on the map</label>
+    <button class="btn primary" id="btnFit">Zoom to results</button>
+    <button class="btn" id="btnReset">Reset all filters</button>
+    <p class="muted" style="font-size:11.5px;margin-top:12px">Tip: click a legend item to hide/show it, click a bar in a chart to filter by it, and click a table row to jump to that point.</p>
+  </aside>
+
+  <section class="panel mapwrap">
+    <div id="map"></div>
+    <div class="mapbar"><label for="colorBy">Color points by</label>
+      <select id="colorBy">
+        <option value="lug">Land use</option>
+        <option value="ph">Soil pH</option>
+        <option value="n">Total N</option>
+        <option value="p">Available P</option>
+        <option value="k">Exchangeable K</option>
+        <option value="yr">Year</option>
+        <option value="reg">Region</option>
+        <option value="st">Sampling type</option>
+      </select>
+    </div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel analytics" id="analytics">
+    <h2>Analytics <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400" id="anaScope"></span></h2>
+    <div class="card"><h3>Samples by land use</h3><div class="note">Click a bar to filter</div><div id="ch_lug"></div></div>
+    <div class="card"><h3>Soil pH distribution</h3><div class="note" id="ph_note"></div><div id="ch_ph"></div></div>
+    <div class="card"><h3>Nutrient status</h3><div class="note">Share of points per rating class (topsoil sample)</div><div id="ch_npk"></div></div>
+    <div class="card"><h3>Soil fertility by land use</h3><div class="note">Median topsoil values · groups with ≥3 analyzed points</div><div id="ch_fert"></div></div>
+    <div class="card" style="display:none"><h3>Sampling progress</h3><div class="note" id="tl_note">Points described per month</div><div id="ch_time"></div></div>
+    <div class="card"><h3>Samples by year</h3><div id="ch_yr"></div></div>
+    <div class="card"><h3>Samples by region</h3><div class="note">Click a bar to filter</div><div id="ch_reg"></div></div>
+    <div class="card" style="display:none"><h3>Top provinces</h3><div class="note">Click a bar to filter</div><div id="ch_prov"></div></div>
+    <div class="card"><h3>Most common soil series</h3><div id="ch_ser"></div></div>
+  </section>
+</div>
+
+<section class="panel tablewrap">
+  <div class="tbar"><h2 style="margin:0">Data table</h2><span class="muted" id="tcount"></span><span class="sp"></span>
+    <div class="pager"><button id="pPrev">‹ Prev</button><span id="pInfo"></span><button id="pNext">Next ›</button></div>
+  </div>
+  <div class="tscroll"><table class="dt" id="dt"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<div class="modal" id="about"><div class="box">
+  <h2>About the data</h2>
+  <p>Source: <b>NSHP SRMU SHMS 2023–2026 Soil Resources Information Database (points, layers, NPK &amp; pH)</b>. Each map point is one sampling site (pit, auger boring, roadcut, etc.). Horizon and lab rows were combined under their site.</p>
+  <ul id="aboutStats"></ul>
+  <h3 style="font-size:15px">Cleaning applied</h3>
+  <ul>
+    <li>Coordinates come from the <i>LatLong</i> field, or from the Latitude/Longitude columns with stray spaces removed (e.g. "17. 83768"). Points outside the Philippines' extent are left off the map but are still counted and listed in the table.</li>
+    <li>Exchangeable K reported in mg/kg (ppm) was converted to cmol/kg (÷ 391). Unlabelled K values above 10 were treated as ppm.</li>
+    <li>Values reported as below detection (&lt;MDL, Nil, "&lt;x") are counted as Low. "&lt;x" is stored as x/2, and MDL/Nil as 0.</li>
+    <li>Obvious entry errors were excluded from analytics (pH outside 3–10, Total N &gt; 2 %).</li>
+    <li>The map, ratings and charts use the shallowest analyzed layer (topsoil). The point popup lists every depth.</li>
+    <li>Land use was grouped by the first crop or cover named in the record. Records holding only a numeric code (e.g. "1", "2") are shown as <i>Coded (numeric)</i>.</li>
+  </ul>
+  <h3 style="font-size:15px">Rating thresholds (general guide, editable in the file's CONFIG)</h3>
+  <table id="aboutThr"></table>
+  <p style="margin-top:16px"><button class="btn" style="width:auto;padding:6px 16px" onclick="document.getElementById('about').classList.remove('on')">Close</button></p>
+</div></div>
+
+<script id="soil-data" type="application/json">__DATA__</script>
+<script>
+/* ===================== CONFIG – edit labels, thresholds and colors here ===================== */
+const CONFIG = {
+  pH: [ // upper bound (exclusive), label, color
+    { max: 4.5, label: 'Very strongly acid (<4.5)', color: '#b2182b' },
+    { max: 5.5, label: 'Strongly acid (4.5–5.5)', color: '#ef8a62' },
+    { max: 6.5, label: 'Moderately–slightly acid (5.5–6.5)', color: '#e3b505' },
+    { max: 7.5, label: 'Neutral (6.5–7.5)', color: '#4c9a2a' },
+    { max: 99,  label: 'Alkaline (>7.5)', color: '#2c7bb6' }
+  ],
+  N: { name: 'Total N', unit: '%', low: 0.10, high: 0.20, dp: 2 },
+  P: { name: 'Available P', unit: 'ppm', low: 10, high: 20, dp: 1 },
+  K: { name: 'Exchangeable K', unit: 'cmol/kg', low: 0.20, high: 0.60, dp: 2 },
+  ratingColors: { Low: '#d7301f', Medium: '#f0a830', High: '#3a8d3f', 'No data': '#b8b5ad' },
+  palette: ['#2e7d32','#f9a825','#1565c0','#8d6e63','#c62828','#6a1b9a','#00838f','#ef6c00','#ad1457','#558b2f','#4527a0','#00695c','#9e9d24','#5d4037','#283593','#d84315','#37474f'],
+  pageSize: 50
+};
+/* ============================================================================================ */
+
+const DATA = JSON.parse(document.getElementById('soil-data').textContent);
+const $ = id => document.getElementById(id);
+const esc = s => s == null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (v, dp = 2) => v == null ? '–' : (+v).toFixed(dp);
+const nf = n => n.toLocaleString('en-US');
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const countBy = (arr, fn) => { const m = new Map(); for (const r of arr) { const k = fn(r); if (k == null || k === '') continue; m.set(k, (m.get(k) || 0) + 1); } return m; };
+
+// ---------- classification ----------
+const phClass = v => v == null ? 'No data' : CONFIG.pH.find(c => v < c.max).label;
+const rate = (v, c) => v == null ? 'No data' : v < c.low ? 'Low' : v < c.high ? 'Medium' : 'High';
+const rateLabel = (k, c) => k === 'No data' ? k : k === 'Low' ? `Low (<${c.low} ${c.unit})` : k === 'Medium' ? `Medium (${c.low}–${c.high})` : `High (≥${c.high} ${c.unit})`;
+DATA.forEach((r, i) => {
+  r._i = i;
+  r.yr = r.yr != null ? String(r.yr) : undefined;
+  r._ph = phClass(r.ph); r._n = rate(r.n, CONFIG.N); r._p = rate(r.p, CONFIG.P); r._k = rate(r.k, CONFIG.K);
+  r._hasLab = r.lab && r.lab.length > 0;
+  r._q = [r.id, r.brgy, r.mun, r.prov, r.reg, r.ser, r.fam, r.sg, r.lu, r.sitio, r.proj].filter(Boolean).join(' ').toLowerCase();
+});
+
+// ---------- colour modes ----------
+function catColors(key, order) {
+  const counts = countBy(DATA, r => r[key]);
+  const cats = order || [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a));
+  const m = {}; cats.forEach((c, i) => m[c] = CONFIG.palette[i % CONFIG.palette.length]);
+  return m;
+}
+const ratingMode = (key, cfg, title) => ({
+  title, get: r => r['_' + key],
+  colors: CONFIG.ratingColors, order: ['Low', 'Medium', 'High', 'No data'], label: k => rateLabel(k, cfg)
+});
+const MODES = {
+  lug: { title: 'Land use', get: r => r.lug || 'Not recorded', colors: catColors('lug') },
+  ph:  { title: 'Soil pH (topsoil)', get: r => r._ph, colors: Object.fromEntries([...CONFIG.pH.map(c => [c.label, c.color]), ['No data', CONFIG.ratingColors['No data']]]), order: [...CONFIG.pH.map(c => c.label), 'No data'] },
+  n: ratingMode('n', CONFIG.N, 'Total N (topsoil)'),
+  p: ratingMode('p', CONFIG.P, 'Available P (topsoil)'),
+  k: ratingMode('k', CONFIG.K, 'Exchangeable K (topsoil)'),
+  yr:  { title: 'Year', get: r => r.yr || 'Unknown', colors: catColors('yr', [...new Set(DATA.map(r => r.yr || 'Unknown'))].sort()), order: [...new Set(DATA.map(r => r.yr || 'Unknown'))].sort() },
+  reg: { title: 'Region', get: r => r.reg || 'Unknown', colors: catColors('reg') },
+  st:  { title: 'Sampling type', get: r => r.st || 'Not recorded', colors: catColors('st') }
+};
+MODES.lug.colors['Not recorded'] = '#b8b5ad'; MODES.lug.colors['Coded (numeric)'] = '#90a4ae'; MODES.st.colors['Not recorded'] = '#b8b5ad';
+
+// ---------- state ----------
+const F = { reg: '', prov: '', mun: '', lug: '', yr: '', st: '', q: '', from: '', to: '', lab: false, view: false };
+let colorBy = 'lug';
+const hidden = {}; Object.keys(MODES).forEach(k => hidden[k] = new Set());
+let base = [], shown = [];
+let sort = { key: 'id', dir: 1 }, page = 0;
+
+function passes(r, skip) {
+  for (const k of ['reg', 'prov', 'mun', 'lug', 'yr', 'st']) if (k !== skip && F[k] && r[k] !== F[k]) return false;
+  if (F.lab && !r._hasLab) return false;
+  if (F.q && !r._q.includes(F.q)) return false;
+  if ((F.from || F.to) && (!r.date || (F.from && r.date < F.from) || (F.to && r.date > F.to))) return false;
+  const h = hidden[colorBy]; if (h.size && h.has(MODES[colorBy].get(r))) return false;
+  return true;
+}
+
+// ---------- map ----------
+const map = L.map('map', { preferCanvas: true, zoomControl: true }).setView([12.3, 122.5], 6);
+const esri = (svc, attr) => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 19, attribution: attr });
+const baseLayers = {
+  'Light': esri('Canvas/World_Light_Gray_Base', 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'),
+  'Streets': esri('World_Street_Map', 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'),
+  'Satellite': esri('World_Imagery', 'Imagery &copy; Esri, Maxar, Earthstar Geographics'),
+  'Terrain': esri('World_Topo_Map', 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'),
+  'OpenStreetMap': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' })
+};
+baseLayers['Light'].addTo(map);
+L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
+L.control.scale({ imperial: false }).addTo(map);
+const canvas = L.canvas({ padding: 0.3 });
+const markerLayer = L.layerGroup().addTo(map);
+const markers = new Map();
+
+function popupHtml(r) {
+  const row = (k, v) => v == null || v === '' ? '' : `<tr><td>${k}</td><td>${esc(v)}</td></tr>`;
+  const section = (title, rows, open) => rows ? `<details ${open ? 'open' : ''}><summary class="sec">${title}</summary><table>${rows}</table></details>` : '';
+  let h = `<div class="pp"><h4>${esc(r.id)}${r.yr ? `<span class="tag">${esc(r.yr)}</span>` : ''}</h4>`;
+  h += section('Location', row('Region', r.reg) + row('Province', r.prov) + row('Municipality', r.mun) + row('Barangay', r.brgy) + row('Sitio', r.sitio)
+     + row('Latitude', r.lat) + row('Longitude', r.lon), true);
+  h += section('Site characteristics', row('Land use', r.lu ? (r.lu + (r.lug && r.lug !== r.lu ? ` (${r.lug})` : '')) : r.lug)
+     + row('Date described', r.date) + row('Sampling type', r.st) + row('Described by', r.by) + row('Project', r.proj) + row('SMU code', r.smu)
+     + row('Elevation (m)', r.elev) + row('Slope', r.slope) + row('Physiography', r.phy) + row('Landform', r.lf) + row('Parent material', r.pm)
+     + row('Drainage', r.drn) + row('Flooding', r.fl) + row('Erosion', r.er) + row('Rock outcrops', r.ro) + row('Stoniness', r.stn)
+     + row('Climate type', r.cl) + row('Moisture regime', r.mr) + row('Remarks', r.rem), true);
+  h += section('Soil classification', row('Soil series', r.ser) + row('Family', r.fam) + row('Subgroup', r.sg) + row('Epipedon', r.epi) + row('Subsurface horizon', r.sub), true);
+  if (r._hasLab) {
+    h += `<details open><summary class="sec">Laboratory results</summary><table class="lab"><tr><th>Depth (cm)</th><th>pH</th><th>N %</th><th>P ppm</th><th>K cmol/kg</th></tr>`;
+    for (const L_ of r.lab) h += `<tr><td>${L_[0] != null ? L_[0] + '–' + (L_[1] ?? '') : '–'}</td><td>${fmt(L_[2], 2)}</td><td>${fmt(L_[3], 3)}</td><td>${fmt(L_[4], 2)}</td><td>${fmt(L_[5], 3)}</td></tr>`;
+    h += '</table>';
+    h += `<div style="margin-top:4px;font-size:11.5px">Topsoil rating: pH <b>${esc(r._ph.split(' (')[0])}</b> · N <b>${r._n}</b> · P <b>${r._p}</b> · K <b>${r._k}</b></div></details>`;
+  }
+  if (r.hz && r.hz.length) {
+    h += `<details open><summary class="sec">Soil profile description (${r.hz.length} horizons)</summary><div class="hzl">`;
+    h += r.hz.map(z => `<div class="hzi"><div class="hzh"><b>${esc(z[0])}</b> <span class="muted">${z[1] ?? ''}–${z[2] ?? ''} cm</span></div>${z[3] ? `<div>${esc(z[3])}</div>` : ''}</div>`).join('');
+    h += '</div></details>';
+  }
+  if (r.lat != null) h += `<div class="coords">📍 ${r.lat}, ${r.lon} · <a href="https://www.google.com/maps?q=${r.lat},${r.lon}" target="_blank" rel="noopener">Open in Google Maps</a></div>`;
+  return h + '</div>';
+}
+
+function drawMap() {
+  markerLayer.clearLayers(); markers.clear();
+  const M = MODES[colorBy];
+  for (const r of base) {
+    if (r.lat == null) continue;
+    const m = L.circleMarker([r.lat, r.lon], { renderer: canvas, radius: 6, weight: 1.2, color: '#ffffff', fillColor: M.colors[M.get(r)] || '#999', fillOpacity: 0.92 });
+    m.bindPopup(() => popupHtml(r), { maxWidth: 380, maxHeight: 460, autoPanPadding: [20, 20] });
+    m.bindTooltip(`${esc(r.id)}${r.brgy ? ' · ' + esc(r.brgy) : ''}`, { direction: 'top', offset: [0, -6] });
+    markerLayer.addLayer(m); markers.set(r._i, m);
+  }
+}
+
+function fitResults() {
+  const pts = base.filter(r => r.lat != null).map(r => [r.lat, r.lon]);
+  if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.08), { maxZoom: 13 });
+}
+
+// ---------- legend ----------
+function drawLegend() {
+  const M = MODES[colorBy], h = hidden[colorBy];
+  const all = DATA.filter(r => passesExceptLegend(r));
+  const counts = countBy(all, M.get);
+  const cats = M.order ? M.order.filter(c => counts.has(c) || h.has(c)) : [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a));
+  h.forEach(c => { if (!cats.includes(c)) cats.push(c); });
+  $('legend').innerHTML = `<div class="t"><span>${M.title}</span>${h.size ? '<button id="lgAll">show all</button>' : ''}</div>` +
+    cats.map(c => `<div class="lg ${h.has(c) ? 'off' : ''}" data-c="${esc(c)}" title="Click to hide/show"><span class="sw" style="background:${M.colors[c] || '#999'}"></span><span>${esc(M.label ? M.label(c) : c)}</span><span class="c">${nf(counts.get(c) || 0)}</span></div>`).join('');
+  $('legend').querySelectorAll('.lg').forEach(el => el.onclick = () => { const c = el.dataset.c; h.has(c) ? h.delete(c) : h.add(c); update(); });
+  const b = $('lgAll'); if (b) b.onclick = () => { h.clear(); update(); };
+}
+function passesExceptLegend(r) { const h = hidden[colorBy]; hidden[colorBy] = new Set(); const ok = passes(r); hidden[colorBy] = h; return ok; }
+
+// ---------- dropdowns ----------
+const LABELS = { reg: 'All regions', prov: 'All provinces', mun: 'All municipalities', lug: 'All land uses', yr: 'All years', st: 'All sampling types' };
+function drawDropdowns() {
+  for (const k of Object.keys(LABELS)) {
+    const sel = $('f_' + k);
+    const counts = countBy(DATA.filter(r => passes(r, k)), r => r[k]);
+    let keys = [...counts.keys()];
+    keys.sort(k === 'yr' ? (a, b) => a.localeCompare(b) : (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+    if (F[k] && !counts.has(F[k])) keys.unshift(F[k]);
+    sel.innerHTML = `<option value="">${LABELS[k]}</option>` + keys.map(v => `<option value="${esc(v)}" ${v === F[k] ? 'selected' : ''}>${esc(v)} (${nf(counts.get(v) || 0)})</option>`).join('');
+  }
+}
+
+// ---------- KPIs & chips ----------
+function drawKPIs() {
+  const s = shown, uniq = k => new Set(s.map(r => r[k]).filter(Boolean)).size;
+  const brgy = new Set(s.filter(r => r.brgy).map(r => (r.prov || '') + '|' + (r.mun || '') + '|' + r.brgy)).size;
+  const mun = new Set(s.filter(r => r.mun).map(r => (r.prov || '') + '|' + r.mun)).size;
+  const phs = s.map(r => r.ph).filter(v => v != null);
+  const dates = s.map(r => r.date).filter(Boolean).sort();
+  const k = [
+    [nf(s.length), 'Sampling points'],
+    [nf(s.filter(r => r.lat != null).length), 'Mapped (with coordinates)'],
+    [nf(uniq('prov')), 'Provinces'],
+    [nf(mun), 'Municipalities'],
+    [nf(brgy), 'Barangays'],
+    [nf(s.filter(r => r._hasLab).length), 'With lab results'],
+    [phs.length ? median(phs).toFixed(2) : '–', 'Median topsoil pH'],
+    [dates.length ? dates[0].slice(0, 7) + ' → ' + dates[dates.length - 1].slice(0, 7) : '–', 'Date range']
+  ];
+  $('kpis').innerHTML = k.map(([v, l], i) => `<div class="kpi" style="border-left-color:${['#3d5a3a','#5f7f4f','#7a5c3c','#a07850','#c8862e','#2c7bb6','#e3b505','#6b706c'][i]}"><div class="v" ${i === 7 ? 'style="font-size:16px;padding-top:4px"' : ''}>${v}</div><div class="l">${l}</div></div>`).join('');
+}
+function drawChips() {
+  const names = { reg: 'Region', prov: 'Province', mun: 'Municipality', lug: 'Land use', yr: 'Year', st: 'Sampling type' };
+  const c = [];
+  for (const k in names) if (F[k]) c.push([`${names[k]}: ${F[k]}`, () => { F[k] = ''; }]);
+  if (F.q) c.push([`Search: "${F.q}"`, () => { F.q = ''; $('q').value = ''; }]);
+  if (F.from || F.to) c.push([`Date: ${F.from || '…'} → ${F.to || '…'}`, () => { F.from = F.to = ''; $('d_from').value = $('d_to').value = ''; }]);
+  if (F.lab) c.push(['With lab results', () => { F.lab = false; $('c_lab').checked = false; }]);
+  if (F.view) c.push(['Map view only', () => { F.view = false; $('c_view').checked = false; }]);
+  if (hidden[colorBy].size) c.push([`${hidden[colorBy].size} legend item(s) hidden`, () => hidden[colorBy].clear()]);
+  $('chips').innerHTML = c.map(([t], i) => `<span class="chip">${esc(t)}<button data-i="${i}" title="Remove">×</button></span>`).join('');
+  $('chips').querySelectorAll('button').forEach(b => b.onclick = () => { c[+b.dataset.i][1](); update(); });
+}
+
+// ---------- charts ----------
+function hbars(el, entries, { key, color, colors, limit = 12, total } = {}) {
+  entries = entries.slice(0, limit);
+  if (!entries.length) { $(el).innerHTML = '<div class="muted">No data for current filters</div>'; return; }
+  const max = Math.max(...entries.map(e => e[1]));
+  $(el).innerHTML = entries.map(([lab, v]) => `<div class="hb ${key ? 'click' : ''} ${key && F[key] === lab ? 'sel' : ''}" data-v="${esc(lab)}" title="${esc(lab)}: ${nf(v)}${total ? ' (' + (100 * v / total).toFixed(1) + '%)' : ''}">
+      <span class="lab">${esc(lab)}</span><span class="track"><span class="bar" style="display:block;width:${(100 * v / max).toFixed(1)}%;background:${(colors && colors[lab]) || color || 'var(--brand)'}"></span></span><span class="val">${nf(v)}</span></div>`).join('');
+  if (key) $(el).querySelectorAll('.hb').forEach(d => d.onclick = () => { F[key] = F[key] === d.dataset.v ? '' : d.dataset.v; update(); });
+}
+const sortedCounts = (arr, fn) => [...countBy(arr, fn).entries()].sort((a, b) => b[1] - a[1]);
+
+function drawCharts() {
+  const s = shown;
+  $('anaScope').textContent = `· ${nf(s.length)} points`;
+  hbars('ch_lug', sortedCounts(s, r => r.lug || 'Not recorded'), { key: 'lug', colors: MODES.lug.colors, limit: 16, total: s.length });
+  hbars('ch_yr', [...countBy(s, r => r.yr).entries()].sort((a, b) => a[0].localeCompare(b[0])), { key: 'yr', colors: MODES.yr.colors, total: s.length });
+  hbars('ch_reg', sortedCounts(s, r => r.reg), { key: 'reg', color: '#7a5c3c', limit: 20, total: s.length });
+  hbars('ch_prov', sortedCounts(s, r => r.prov), { key: 'prov', color: '#a07850', limit: 15, total: s.length });
+  hbars('ch_ser', sortedCounts(s.filter(r => r.ser && !/^\d+$/.test(r.ser) && !/conform/i.test(r.ser)), r => r.ser), { color: '#5f7f4f', limit: 10 });
+
+  // pH histogram
+  const phs = s.map(r => r.ph).filter(v => v != null);
+  if (!phs.length) { $('ch_ph').innerHTML = '<div class="muted">No pH data for current filters</div>'; $('ph_note').textContent = ''; }
+  else {
+    const lo = 3.5, hi = 9, w = 0.25, nb = Math.round((hi - lo) / w), bins = new Array(nb).fill(0);
+    phs.forEach(v => bins[Math.min(nb - 1, Math.max(0, Math.floor((v - lo) / w)))]++);
+    const mx = Math.max(...bins);
+    $('ph_note').textContent = `${nf(phs.length)} points · median ${median(phs).toFixed(2)} · mean ${(phs.reduce((a, b) => a + b, 0) / phs.length).toFixed(2)}`;
+    $('ch_ph').innerHTML = `<div class="cols">${bins.map((b, i) => { const x = lo + i * w; return `<div class="col" style="height:${(100 * b / mx).toFixed(1)}%;background:${MODES.ph.colors[phClass(x + w / 2)]}" title="pH ${x.toFixed(2)}–${(x + w).toFixed(2)}: ${b}"></div>`; }).join('')}</div>
+      <div class="axis">${[3.5, 4.5, 5.5, 6.5, 7.5, 8.5].map(v => `<span>${v}</span>`).join('')}</div>
+      <div class="minileg">${CONFIG.pH.map(c => { const n = phs.filter(v => phClass(v) === c.label).length; return `<span><i style="background:${c.color}"></i>${c.label.split(' (')[0]} ${Math.round(100 * n / phs.length)}%</span>`; }).join('')}</div>`;
+  }
+
+  // NPK stacked
+  const rc = CONFIG.ratingColors;
+  $('ch_npk').innerHTML = [['n', CONFIG.N], ['p', CONFIG.P], ['k', CONFIG.K]].map(([k, c]) => {
+    const vals = s.filter(r => r[k] != null), tot = vals.length;
+    const cnt = { Low: 0, Medium: 0, High: 0 }; vals.forEach(r => cnt[r['_' + k]]++);
+    const med = median(vals.map(r => r[k]));
+    return `<div class="stk"><div class="h"><span><b>${c.name}</b> <span class="muted">(${c.unit})</span></span><span>${nf(tot)} pts · median ${med == null ? '–' : med.toFixed(c.dp)}</span></div>
+      <div class="bars">${tot ? ['Low', 'Medium', 'High'].map(x => cnt[x] ? `<div style="width:${100 * cnt[x] / tot}%;background:${rc[x]}" title="${rateLabel(x, c)}: ${cnt[x]} (${(100 * cnt[x] / tot).toFixed(1)}%)">${100 * cnt[x] / tot >= 9 ? Math.round(100 * cnt[x] / tot) + '%' : ''}</div>` : '').join('') : ''}</div></div>`;
+  }).join('') + `<div class="minileg">${['Low', 'Medium', 'High'].map(x => `<span><i style="background:${rc[x]}"></i>${x}</span>`).join('')}</div>`;
+
+  // fertility by land use
+  const groups = new Map();
+  s.filter(r => r._hasLab).forEach(r => { const g = r.lug || 'Not recorded'; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(r); });
+  const rowsF = [...groups.entries()].filter(([, a]) => a.length >= 3).sort((a, b) => b[1].length - a[1].length);
+  const cell = (v, k) => {
+    if (v == null) return '<td class="muted">–</td>';
+    let col;
+    if (k === 'ph') col = MODES.ph.colors[phClass(v)];
+    else col = rc[rate(v, CONFIG[k.toUpperCase()])];
+    const dp = k === 'ph' ? 2 : CONFIG[k.toUpperCase()].dp;
+    return `<td><span class="cell" style="background:${col}22;border:1px solid ${col}66">${v.toFixed(dp)}</span></td>`;
+  };
+  $('ch_fert').innerHTML = rowsF.length ? `<table class="mt"><tr><th>Land use</th><th>n</th><th>pH</th><th>N %</th><th>P ppm</th><th>K cmol/kg</th></tr>${rowsF.map(([g, a]) =>
+    `<tr><td>${esc(g)}</td><td class="muted">${a.length}</td>${['ph', 'n', 'p', 'k'].map(k => cell(median(a.map(r => r[k]).filter(v => v != null)), k)).join('')}</tr>`).join('')}</table>` : '<div class="muted">Not enough analyzed points for current filters</div>';
+
+  // timeline
+  const months = countBy(s, r => r.date ? r.date.slice(0, 7) : null);
+  const keys = [...months.keys()].sort();
+  if (!keys.length) { $('ch_time').innerHTML = '<div class="muted">No dates for current filters</div>'; }
+  else {
+    const all = []; let [y, m] = keys[0].split('-').map(Number); const [ey, em] = keys[keys.length - 1].split('-').map(Number);
+    while (y < ey || (y === ey && m <= em)) { all.push(`${y}-${String(m).padStart(2, '0')}`); m++; if (m > 12) { m = 1; y++; } }
+    const mx = Math.max(...months.values());
+    const ticks = all.filter(k => k.endsWith('-01') || k === all[0]);
+    $('ch_time').innerHTML = `<div class="cols" style="height:100px">${all.map(k => `<div class="col" style="height:${(100 * (months.get(k) || 0) / mx).toFixed(1)}%;background:${MODES.yr.colors[k.slice(0, 4)] || '#5f7f4f'}" title="${k}: ${months.get(k) || 0} points"></div>`).join('')}</div>
+      <div class="axis"><span>${all[0]}</span><span>${all[all.length - 1]}</span></div>`;
+    $('tl_note').textContent = `Points described per month · busiest: ${[...months.entries()].sort((a, b) => b[1] - a[1])[0].join(' (')} pts)`;
+  }
+}
+
+// ---------- table ----------
+const COLS = [
+  ['id', 'Point ID'], ['yr', 'Year'], ['reg', 'Region'], ['prov', 'Province'], ['mun', 'Municipality'], ['brgy', 'Barangay'],
+  ['lug', 'Land use'], ['ser', 'Soil series'], ['date', 'Date'], ['ph', 'pH', 2], ['n', 'N %', 3], ['p', 'P ppm', 2], ['k', 'K cmol/kg', 3]
+];
+function drawTable() {
+  const num = COLS.find(c => c[0] === sort.key)[2] != null;
+  const rows = [...shown].sort((a, b) => {
+    const x = a[sort.key], y = b[sort.key];
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+    return (num ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * sort.dir;
+  });
+  const pages = Math.max(1, Math.ceil(rows.length / CONFIG.pageSize)); page = Math.min(page, pages - 1);
+  const slice = rows.slice(page * CONFIG.pageSize, (page + 1) * CONFIG.pageSize);
+  $('dt').tHead.innerHTML = '<tr>' + COLS.map(([k, l, dp]) => `<th data-k="${k}" class="${dp != null ? 'num' : ''}">${l}${sort.key === k ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
+  const M = MODES[colorBy];
+  $('dt').tBodies[0].innerHTML = slice.map(r => `<tr data-i="${r._i}">` + COLS.map(([k, , dp], j) =>
+    `<td class="${dp != null ? 'num' : ''}">${j === 0 ? `<span class="dot" style="background:${M.colors[M.get(r)]}"></span>` : ''}${dp != null ? fmt(r[k], dp) : esc(r[k] ?? '')}${j === 0 && r.lat == null ? ' <span class="muted" title="No valid coordinates">(no coords)</span>' : ''}</td>`).join('') + '</tr>').join('');
+  $('tcount').textContent = `${nf(rows.length)} rows`;
+  $('pInfo').textContent = `Page ${page + 1} of ${pages}`;
+  $('pPrev').disabled = page === 0; $('pNext').disabled = page >= pages - 1;
+  $('dt').tHead.querySelectorAll('th').forEach(th => th.onclick = () => { const k = th.dataset.k; sort = { key: k, dir: sort.key === k ? -sort.dir : 1 }; page = 0; drawTable(); });
+  $('dt').tBodies[0].querySelectorAll('tr').forEach(tr => tr.onclick = () => focusPoint(+tr.dataset.i));
+}
+function focusPoint(i) {
+  const r = DATA[i], m = markers.get(i);
+  if (!m) { alert('This point has no valid coordinates, so it cannot be shown on the map.'); return; }
+  document.querySelector('.mapwrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  map.flyTo([r.lat, r.lon], Math.max(map.getZoom(), 13), { duration: 0.8 });
+  map.once('moveend', () => m.openPopup());
+}
+
+// ---------- export ----------
+function exportCSV() {
+  const cols = [['id','Point ID'],['yr','Year'],['reg','Region'],['prov','Province'],['mun','Municipality'],['brgy','Barangay'],['sitio','Sitio'],['lat','Latitude'],['lon','Longitude'],['lu','Land use (original)'],['lug','Land use group'],['st','Sampling type'],['date','Date described'],['ser','Soil series'],['fam','Family'],['sg','Subgroup'],['by','Described by'],['proj','Project'],['pm','Parent material'],['elev','Elevation'],['slope','Slope'],['drn','Drainage'],['lf','Landform'],['ph','pH (topsoil)'],['_ph','pH class'],['n','Total N %'],['_n','N rating'],['p','Available P ppm'],['_p','P rating'],['k','Exch. K cmol/kg'],['_k','K rating']];
+  const q = v => v == null ? '' : /[",\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v);
+  const csv = '﻿' + cols.map(c => q(c[1])).join(',') + '\n' + shown.map(r => cols.map(c => q(r[c[0]])).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `soil_points_filtered_${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ---------- update loop ----------
+function computeShown() {
+  if (F.view) { const b = map.getBounds(); shown = base.filter(r => r.lat != null && b.contains([r.lat, r.lon])); }
+  else shown = base;
+}
+function update() {
+  base = DATA.filter(r => passes(r));
+  computeShown();
+  drawMap(); drawLegend(); drawDropdowns(); drawKPIs(); drawChips(); drawCharts(); page = 0; drawTable();
+}
+map.on('moveend', () => { if (F.view) { computeShown(); drawKPIs(); drawCharts(); drawTable(); } });
+
+// ---------- wire up ----------
+Object.keys(LABELS).forEach(k => $('f_' + k).onchange = e => {
+  F[k] = e.target.value;
+  if (k === 'reg') { F.prov = ''; F.mun = ''; } if (k === 'prov') F.mun = '';
+  update(); if (['reg', 'prov', 'mun'].includes(k)) fitResults();
+});
+let qT; $('q').oninput = e => { clearTimeout(qT); qT = setTimeout(() => { F.q = e.target.value.trim().toLowerCase(); update(); }, 250); };
+$('d_from').onchange = e => { F.from = e.target.value; update(); };
+$('d_to').onchange = e => { F.to = e.target.value; update(); };
+$('c_lab').onchange = e => { F.lab = e.target.checked; update(); };
+$('c_view').onchange = e => { F.view = e.target.checked; computeShown(); drawKPIs(); drawChips(); drawCharts(); drawTable(); };
+$('colorBy').onchange = e => { colorBy = e.target.value; update(); };
+$('btnFit').onclick = fitResults;
+$('btnReset').onclick = () => { Object.assign(F, { reg: '', prov: '', mun: '', lug: '', yr: '', st: '', q: '', from: '', to: '', lab: false, view: false }); Object.values(hidden).forEach(h => h.clear());
+  ['q', 'd_from', 'd_to'].forEach(id => $(id).value = ''); $('c_lab').checked = $('c_view').checked = false; update(); fitResults(); };
+$('pPrev').onclick = () => { page--; drawTable(); };
+$('pNext').onclick = () => { page++; drawTable(); };
+$('btnExport').onclick = exportCSV;
+$('btnAbout').onclick = () => $('about').classList.add('on');
+$('about').onclick = e => { if (e.target.id === 'about') $('about').classList.remove('on'); };
+
+// about stats
+(() => {
+  const withC = DATA.filter(r => r.lat != null).length, lab = DATA.filter(r => r._hasLab).length;
+  $('aboutStats').innerHTML = `<li><b>${nf(DATA.length)}</b> sampling points in total, <b>${nf(withC)}</b> of them with valid coordinates.</li><li><b>${nf(lab)}</b> points have pH, N, P or K results.</li><li>${nf(new Set(DATA.map(r => r.prov).filter(Boolean)).size)} provinces across ${nf(new Set(DATA.map(r => r.reg).filter(Boolean)).size)} regions.</li>`;
+  const t = c => `<tr><td>${c.name}</td><td>&lt; ${c.low} ${c.unit}</td><td>${c.low} – ${c.high}</td><td>≥ ${c.high} ${c.unit}</td></tr>`;
+  $('aboutThr').innerHTML = `<tr><th>Parameter</th><th>Low</th><th>Medium</th><th>High</th></tr>${t(CONFIG.N)}${t(CONFIG.P)}${t(CONFIG.K)}<tr><td>pH</td><td colspan="3">${CONFIG.pH.map(c => c.label).join(' · ')}</td></tr>`;
+})();
+
+update(); fitResults();
+</script>
+</body>
+</html>
